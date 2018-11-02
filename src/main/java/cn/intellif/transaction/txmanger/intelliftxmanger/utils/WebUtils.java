@@ -37,6 +37,9 @@ public class WebUtils {
                         break;
                     }
                     NetworkInterface ni = (NetworkInterface) netInterfaces.nextElement();
+                    String name = ni.getName();
+                    if(name.contains("docker") ||name.contains("lo"))
+                        continue;
                     //----------特定情况，可以考虑用ni.getName判断
                     //遍历所有ip
                     Enumeration<InetAddress> ips = ni.getInetAddresses();
