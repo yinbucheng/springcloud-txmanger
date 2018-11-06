@@ -1,5 +1,6 @@
 package cn.intellif.transaction.txmanger.intelliftxmanger.zookeeper;
 
+import org.apache.log4j.Logger;
 import org.apache.zookeeper.*;
 import org.apache.zookeeper.data.Stat;
 
@@ -8,6 +9,7 @@ import java.util.concurrent.CountDownLatch;
 public class ZkClient {
     private  final CountDownLatch countDownLatch = new CountDownLatch(1);
     private ZooKeeper client =null;
+    private Logger logger = Logger.getLogger(this.getClass());
 
     public ZkClient createZkClient(String url){
         try {
@@ -20,13 +22,12 @@ public class ZkClient {
                         //连接成功
                         if (event.getType() == Event.EventType.None) {
                             countDownLatch.countDown();
-                            System.out.println("连接上");
+                            logger.info("-------->connection to zookeeper success");
                         }
                     }
                 }
             });
 
-            System.out.println("主线程等待");
             //主函数
             countDownLatch.await();
             client = zk;
