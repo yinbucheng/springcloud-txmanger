@@ -81,13 +81,8 @@ public class NettyService implements DisposableBean{
             if(zkClient!=null){
                 zkClient.close();
             }
-            logger.error(Constant.LOG_PRE+"txmanger server has broken:"+e.getMessage()+e.getCause()+" wait for 60s to restart netty server...");
-            try {
-                Thread.sleep(60000);
-            } catch (InterruptedException e1) {
-                e1.printStackTrace();
-            }
-            start();
+            logger.error(Constant.LOG_PRE+"txmanger server has broken:"+e);
+//            throw new RuntimeException(e);
         }
     }
 
