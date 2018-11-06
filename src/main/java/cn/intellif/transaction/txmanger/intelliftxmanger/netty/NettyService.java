@@ -45,7 +45,7 @@ public class NettyService implements DisposableBean{
     public void start(){
         if(runflag)
             return;
-        runflag = false;
+        runflag = true;
         IntellifTransactionHandler txCoreServerHandler = new IntellifTransactionHandler();
         bossGroup = new NioEventLoopGroup(3); // (1)
         workerGroup = new NioEventLoopGroup();
