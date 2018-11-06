@@ -38,9 +38,10 @@ public class WebUtils {
                     }
                     NetworkInterface ni = (NetworkInterface) netInterfaces.nextElement();
                     String name = ni.getName();
+                    //----------特定情况，可以考虑用ni.getName判断
+                    //如果为docker的虚拟ip地址调过
                     if(name.contains("docker") ||name.contains("lo"))
                         continue;
-                    //----------特定情况，可以考虑用ni.getName判断
                     //遍历所有ip
                     Enumeration<InetAddress> ips = ni.getInetAddresses();
                     while (ips.hasMoreElements()) {

@@ -4,6 +4,7 @@ import cn.intellif.transaction.txmanger.intelliftxmanger.constant.Constant;
 import cn.intellif.transaction.txmanger.intelliftxmanger.netty.handler.IntellifTransactionHandler;
 import cn.intellif.transaction.txmanger.intelliftxmanger.utils.WebUtils;
 import cn.intellif.transaction.txmanger.intelliftxmanger.zookeeper.CuratorUtils;
+import cn.intellif.transaction.txmanger.intelliftxmanger.zookeeper.ZkClient;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
@@ -46,9 +47,9 @@ public class NettyService implements DisposableBean{
             return;
         runflag = false;
         IntellifTransactionHandler txCoreServerHandler = new IntellifTransactionHandler();
-        bossGroup = new NioEventLoopGroup(50); // (1)
+        bossGroup = new NioEventLoopGroup(3); // (1)
         workerGroup = new NioEventLoopGroup();
-        CuratorFramework client = null;
+        ZkClient zkClient = new ZkClient();
         try {
             ServerBootstrap b = new ServerBootstrap();
             b.group(bossGroup, workerGroup)
@@ -66,12 +67,10 @@ public class NettyService implements DisposableBean{
                         }
                     });
             ChannelFuture sync = b.bind(port).sync();
-            registerInZookeeper(client);
+            registerInZookeeper(zkClient);
             logger.info(Constant.LOG_PRE+"txmanger server starting");
             sync.channel().closeFuture().sync();
         } catch (Exception e) {
-            // Shut down all event loops to terminate all threads.
-            e.printStackTrace();
             runflag = false;
             if(workerGroup!=null){
                 workerGroup.shutdownGracefully();
@@ -79,8 +78,8 @@ public class NettyService implements DisposableBean{
             if(bossGroup!=null){
                 bossGroup.shutdownGracefully();
             }
-            if(client!=null){
-                client.close();
+            if(zkClient!=null){
+                zkClient.close();
             }
             logger.error(Constant.LOG_PRE+"txmanger server has broken:"+e.getMessage()+e.getCause());
         }
@@ -96,23 +95,16 @@ public class NettyService implements DisposableBean{
         }
     }
 
-    private void registerInZookeeper( CuratorFramework client){
+    private void registerInZookeeper( ZkClient client){
+        client.createZkClient(url);
+        boolean flag = client.isExist("/"+Constant.INTELLIF_TRANSACTION_NAMSPACE);
+        if(!flag){
+            client.createPersisterPath("/"+Constant.INTELLIF_TRANSACTION_NAMSPACE);
+        }
         long time = System.nanoTime();
-        client =  CuratorUtils.getClient(url,Constant.INTELLIF_TRANSACTION_NAMSPACE);
         String ip = WebUtils.getLocalIP();
-        String path = "/"+time+"-"+ip+"-"+port;
-        CuratorUtils.createEphemeral(client,path,"");
-        final CuratorFramework finalClient = client;
-        CuratorUtils.addListener(client, "/", new CuratorUtils.NodeEvent() {
-            @Override
-            public void childEvent(PathChildrenCacheEvent event) {
-                if(event.getType()== PathChildrenCacheEvent.Type.CHILD_REMOVED){
-                   if( !CuratorUtils.exist(finalClient,path)) {
-                       CuratorUtils.createEphemeral(finalClient, path, "");
-                   }
-                }
-            }
-        });
+        String tempPath ="/"+Constant.INTELLIF_TRANSACTION_NAMSPACE+ "/"+time+"-"+ip+"-"+port;
+        client.createTemplatePath(tempPath);
         logger.info(Constant.LOG_PRE+"regiser netty server ip and port to zookeeper:"+url+" success");
     }
 }
