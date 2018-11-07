@@ -1,6 +1,7 @@
 package cn.intellif.transaction.txmanger.intelliftxmanger.netty;
 
 import cn.intellif.transaction.txmanger.intelliftxmanger.constant.Constant;
+import cn.intellif.transaction.txmanger.intelliftxmanger.environment.EnvironmentUtils;
 import cn.intellif.transaction.txmanger.intelliftxmanger.netty.handler.IntellifTransactionHandler;
 import cn.intellif.transaction.txmanger.intelliftxmanger.utils.WebUtils;
 import cn.intellif.transaction.txmanger.intelliftxmanger.zookeeper.CuratorUtils;
@@ -38,7 +39,7 @@ public class NettyService implements DisposableBean{
     private EventLoopGroup workerGroup;
     @Value("${intellif.txmanger.port}")
     private int port;
-    @Value("${intelli.txmanger.zookeeper.url}")
+    @Value("${intellif.txmanger.zookeeper.url}")
     private String url;
 
     private Logger logger = LoggerFactory.getLogger(NettyService.class);
@@ -103,7 +104,13 @@ public class NettyService implements DisposableBean{
             client.createPersisterPath("/"+Constant.INTELLIF_TRANSACTION_NAMSPACE);
         }
         long time = System.nanoTime();
-        String ip = WebUtils.getLocalIP();
+        String ip =null;
+        boolean autoIp = EnvironmentUtils.getProperties("intellif.txmanger.auto.ip",Boolean.class);
+        if(autoIp) {
+          ip =   WebUtils.getLocalIP();
+        }else{
+            ip = EnvironmentUtils.getProperties("intellif.txmanger.ip",String.class);
+        }
         String tempPath ="/"+Constant.INTELLIF_TRANSACTION_NAMSPACE+ "/"+time+"-"+ip+"-"+port;
         client.createTemplatePath(tempPath);
         logger.info(Constant.LOG_PRE+"regiser netty server ip and port to zookeeper:"+url+" success");
