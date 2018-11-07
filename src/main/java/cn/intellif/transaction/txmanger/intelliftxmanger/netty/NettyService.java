@@ -69,7 +69,7 @@ public class NettyService implements DisposableBean{
                     });
             ChannelFuture sync = b.bind(port).sync();
             registerInZookeeper(zkClient);
-            logger.info(Constant.LOG_PRE+"txmanger server starting");
+            logger.info(Constant.LOG_PRE+"manager server starting");
             sync.channel().closeFuture().sync();
         } catch (Exception e) {
             runflag = false;
