@@ -110,6 +110,9 @@ public class NettyService implements DisposableBean{
           ip =   WebUtils.getLocalIP();
         }else{
             ip = EnvironmentUtils.getProperties("intellif.txmanger.ip",String.class);
+            if(ip==null||ip.equals("")){
+                throw new RuntimeException("please fill intellif.txmanger.ip");
+            }
         }
         String tempPath ="/"+Constant.INTELLIF_TRANSACTION_NAMSPACE+ "/"+time+"-"+ip+"-"+port;
         client.createTemplatePath(tempPath);
