@@ -50,7 +50,8 @@ public class NettyService implements DisposableBean{
         IntellifTransactionHandler txCoreServerHandler = new IntellifTransactionHandler();
         bossGroup = new NioEventLoopGroup(3); // (1)
         workerGroup = new NioEventLoopGroup();
-        ZkClient zkClient = new ZkClient();
+//        ZkClient zkClient = new ZkClient();
+        CuratorFramework client = null;
         try {
             ServerBootstrap b = new ServerBootstrap();
             b.group(bossGroup, workerGroup)
@@ -68,7 +69,8 @@ public class NettyService implements DisposableBean{
                         }
                     });
             ChannelFuture sync = b.bind(port).sync();
-            registerInZookeeper(zkClient);
+//            registerInZookeeper(zkClient);
+            registerInZookeeper(client);
             logger.info(Constant.LOG_PRE+"manager server starting");
             sync.channel().closeFuture().sync();
         } catch (Exception e) {
@@ -79,9 +81,12 @@ public class NettyService implements DisposableBean{
             if(bossGroup!=null){
                 bossGroup.shutdownGracefully();
             }
-            if(zkClient!=null){
-                zkClient.close();
+            if(client!=null){
+                client.close();
             }
+//            if(zkClient!=null){
+//                zkClient.close();
+//            }
             logger.error(Constant.LOG_PRE+"txmanger server has broken:"+e);
 //            throw new RuntimeException(e);
         }
@@ -110,6 +115,26 @@ public class NettyService implements DisposableBean{
         }
         String tempPath ="/"+Constant.INTELLIF_TRANSACTION_NAMSPACE+ "/"+time+"-"+ip+"-"+port;
         client.createTemplatePath(tempPath);
+        logger.info(Constant.LOG_PRE+"regiser netty server ip and port to zookeeper:"+url+" success");
+    }
+
+    private void registerInZookeeper( CuratorFramework client){
+        long time = System.nanoTime();
+        client =  CuratorUtils.getClient(url,Constant.INTELLIF_TRANSACTION_NAMSPACE);
+        String ip = WebUtils.getLocalIP();
+        String path = "/"+time+"-"+ip+"-"+port;
+        CuratorUtils.createEphemeral(client,path,"");
+        final CuratorFramework finalClient = client;
+        CuratorUtils.addListener(client, "/", new CuratorUtils.NodeEvent() {
+            @Override
+            public void childEvent(PathChildrenCacheEvent event) {
+                if(event.getType()== PathChildrenCacheEvent.Type.CHILD_REMOVED){
+                    if( !CuratorUtils.exist(finalClient,path)) {
+                        CuratorUtils.createEphemeral(finalClient, path, "");
+                    }
+                }
+            }
+        });
         logger.info(Constant.LOG_PRE+"regiser netty server ip and port to zookeeper:"+url+" success");
     }
 }
